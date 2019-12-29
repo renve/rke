@@ -1,0 +1,1 @@
+This is a sample RKE cluster file to provision a kubernetes cluster. The instance will need to have an instance role and configured to upload etcd backups to AWS S3, access and secret keys are not needed. 

@@ -1,0 +1,115 @@
+cluster_name: your-cluster-name
+nodes:
+  - address: 10.0.1.162
+    user: ubuntu # this user needs to have access to the key being used as well as added to docker group on all hosts
+    role: 
+      - controlplane
+      - etcd
+      - worker
+    hostname_override: master # I added this because there was an error about having duplicate nodes, this fixed it
+    ssh_key_path: ~/.ssh/key_name # The key that is used on the device running the RKE command to access the other instances
+  - address: 10.0.1.113
+    user: ubuntu
+    role: 
+      - controlplane
+      - etcd
+      - worker
+    hostname_override: master2
+    ssh_key_path: ~/.ssh/key_name
+  - address: 10.0.1.228
+    user: ubuntu
+    role: 
+      - worker
+    hostname_override: minion1
+    ssh_key_path: ~/.ssh/key_name
+
+services:
+  etcd:
+    backup_config:
+      enabled: true     # enables recurring etcd snapshots
+      interval_hours: 1 # time increment between snapshots
+      retention: 60     # time in days before snapshot purge
+      # Optional S3
+      s3backupconfig:
+        bucket_name: "your-bucket-name"
+        folder: "your-bucket-folder" # Available as of v2.3.0
+        endpoint: "s3.us-east-1.amazonaws.com" # change as needed
+        region: "us-east-1" # change as needed
+
+kube-api:
+    audit_log:
+      enabled: true
+      configuration:
+        max_age: 6
+        max_backup: 6
+        max_size: 110
+        path: /var/log/kube-audit/audit-log.json
+        format: json
+        policy:
+          apiVersion: audit.k8s.io/v1 # This is required.
+          kind: Policy
+          omitStages:
+            - "RequestReceived"
+          rules:
+            # Log pod changes at RequestResponse level
+            - level: RequestResponse
+              resources:
+              - group: ""
+                # Resource "pods" doesn't match requests to any subresource of pods,
+                # which is consistent with the RBAC policy.
+                resources: ["pods"]
+            # Log "pods/log", "pods/status" at Metadata level
+            - level: Metadata
+              resources:
+              - group: ""
+                resources: ["pods/log", "pods/status"]
+
+            # Don't log requests to a configmap called "controller-leader"
+            - level: None
+              resources:
+              - group: ""
+                resources: ["configmaps"]
+                resourceNames: ["controller-leader"]
+
+            # Don't log watch requests by the "system:kube-proxy" on endpoints or services
+            - level: None
+              users: ["system:kube-proxy"]
+              verbs: ["watch"]
+              resources:
+              - group: "" # core API group
+                resources: ["endpoints", "services"]
+
+            # Don't log authenticated requests to certain non-resource URL paths.
+            - level: None
+              userGroups: ["system:authenticated"]
+              nonResourceURLs:
+              - "/api*" # Wildcard matching.
+              - "/version"
+
+            # Log the request body of configmap changes in kube-system.
+            - level: Request
+              resources:
+              - group: "" # core API group
+                resources: ["configmaps"]
+              # This rule only applies to resources in the "kube-system" namespace.
+              # The empty string "" can be used to select non-namespaced resources.
+              namespaces: ["kube-system"]
+
+            # Log configmap and secret changes in all other namespaces at the Metadata level.
+            - level: Metadata
+              resources:
+              - group: "" # core API group
+                resources: ["secrets", "configmaps"]
+
+            # Log all other resources in core and extensions at the Request level.
+            - level: Request
+              resources:
+              - group: "" # core API group
+              - group: "extensions" # Version of group should NOT be included.
+
+            # A catch-all rule to log all other requests at the Metadata level.
+            - level: Metadata
+              # Long-running requests like watches that fall under this rule will not
+              # generate an audit event in RequestReceived.
+              omitStages:
+                - "RequestReceived"
