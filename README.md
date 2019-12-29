@@ -1,1 +1,3 @@
-This is a sample RKE cluster file to provision a kubernetes cluster. The instance will need to have an instance role and configured to upload etcd backups to AWS S3, access and secret keys are not needed. 
+This is a sample RKE cluster file to provision a kubernetes cluster. The instance will need to have an instance role and configured to upload etcd backups to AWS S3, access and secret keys are not needed.
+
+***This is only a test cluster, to have a highly avaliable cluster you should have odd number of etcd roles assigned, in this case this is just for testing. Ideally you would have 1-7 nodes that have the etcd and controlplane role assigned. Then create as many nodes as you need that only have the worker role, this is where your deployments would actually happen and you would have an HA cluster.*** 
