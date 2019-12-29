@@ -29,7 +29,10 @@ services:
       enabled: true     # enables recurring etcd snapshots
       interval_hours: 1 # time increment between snapshots
       retention: 60     # time in days before snapshot purge
-      # Optional S3
+      # Optional S3, if using this option you can specify secret and access key or assign an S3 role to your instance
+      # this example uses the more secure instance role for using secret and access keys below s3backupconfig: add the following block
+      # access_key: S3_ACCESS_KEY
+      # secret_key: S3_SECRET_KEY
       s3backupconfig:
         bucket_name: "your-bucket-name"
         folder: "your-bucket-folder" # Available as of v2.3.0
