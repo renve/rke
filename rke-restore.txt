@@ -1,0 +1,29 @@
+RKE version: v0.3.2 
+
+These are the steps to restore from a backup snapshot using RKE. Earlier versions of RKE stored a file called pki.bundle.tar.gz, this version does not and instead uses the cluster.rkestate file. 
+
+I currently have my cluster.yaml
+file to send my backups to S3. I then take my cluster.rkestate file
+and move it to another directory to save it (a better option would be to save to S3) or it will get deleted when running the remove command below. Then I run snapshot-save:
+ 
+rke etcd snapshot-save --name mysnapshot.db --config cluster.yaml
+  # this saves a snapshot in my bucket as mysnapshot.db using the original cluster.yaml
+
+I then move the cluster.rkestate file to another directory to keep from
+being deleted and run rke remove (file is needed to restore back up or you will have cert problem).
+
+rke remove --force --config cluster.yaml
+  # this is to similate a failure of your cluster
+
+I know want to restore and use the same cluster.yaml by moving back my cluster.rkestate file
+in the same directory as my cluster.yaml as well as downloading my previously saved 
+snapshot-rancher.db.zip from S3, this file is also in the same directory as my cluster.yaml.
+I also make a change in nodes in my cluster.yaml. I remove the etcd and control plane and replace it with another node address and assign the etcd and control plane role. Then I run these commands:
+
+Note: it is necessary to have all files in the same directory, these include your cluster.yaml, cluster.rkestate and mysnapshot.db files
+
+unzip snapshot-rancher.db.zip
+rke etcd snapshot-restore --name mysnapshot.db --config cluster.yaml
+  #--name is the name of the backup file
+
+done
